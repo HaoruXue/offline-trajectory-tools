@@ -1,1 +1,1 @@
-# offline-trajectory-optimization
+# Offline Trajectory Optimization
