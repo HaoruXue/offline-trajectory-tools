@@ -1,8 +1,12 @@
 from math import sqrt
-from model import Trajectory, Vehicle
+from .model.trajectory import Trajectory
+from .model.vehicle import Vehicle
 from dataclasses import dataclass
 import numpy as np
 import time
+import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
+from matplotlib.colors import ListedColormap, BoundaryNorm
 
 
 @dataclass
@@ -17,6 +21,52 @@ class SimulationResult:
     max_lon_acc: float
     max_lon_dcc: float
 
+    def __str__(self):
+        return str(f"+---------------------+\n"
+                   "|  Simulation Result  |\n"
+                   "+---------------------+\n"
+                   "| Run Time  | {:7.2f} |\n"
+                   "| Lap Time  | {:7.2f} |\n"
+                   "| Ave Speed | {:7.2f} |\n"
+                   "| Max Speed | {:7.2f} |\n"
+                   "| Min Speed | {:7.2f} |\n"
+                   "| Max Lat G | {:7.2f} |\n"
+                   "| Max ACC   | {:7.2f} |\n"
+                   "| MIN DCC   | {:7.2f} |\n"
+                   "+---------------------+\n"
+                   .format(self.run_time,
+                           self.total_time,
+                           self.average_speed,
+                           self.max_speed,
+                           self.min_speed,
+                           self.max_lat_acc,
+                           self.max_lon_acc,
+                           self.max_lon_dcc)
+                   )
+
+
+class SimulatorVisualization:
+    def __init__(self, trajectory: Trajectory) -> None:
+        self.trajectory = trajectory
+        plt.ion()
+        self.figure, self.ax = plt.subplots(figsize=(10, 10))
+        self.scat = self.ax.scatter(self.trajectory[:, Trajectory.X], self.trajectory[:,
+                                    Trajectory.Y], c=self.trajectory[:, Trajectory.SPEED], cmap='plasma')
+        self.figure.colorbar(self.scat)
+        self.ax.axis("equal")
+
+    def update_plot(self, sleep_time=0.0):
+        self.scat.set_offsets(self.trajectory[:, 0:2])
+        self.scat.set_array(self.trajectory[:, Trajectory.SPEED])
+        self.scat.autoscale()
+        self.figure.canvas.draw_idle()
+        plt.pause(sleep_time)
+
+    def latch_plot(self):
+        plt.ioff()
+        plt.show()
+        plt.ion()
+
 
 class Simulator:
     def __init__(self, vehicle: Vehicle) -> None:
@@ -28,13 +78,30 @@ class Simulator:
     def calc_v(self, lat_acc: float, r: float):
         return sqrt(lat_acc * r)
 
+    def calc_r(self, lat_acc: float, v: float):
+        return v ** 2 / lat_acc
+
     def run_simulation(self, trajectory: Trajectory) -> SimulationResult:
         start_time = time.time()
         trajectory_out = trajectory.copy()
+        x_data = trajectory_out[:, Trajectory.X]
+        x_data = np.append(x_data, x_data[0])
+        x_data = np.insert(x_data, 0, x_data[-1])
+        y_data = trajectory_out[:, Trajectory.Y]
+        y_data = np.append(y_data, y_data[0])
+        y_data = np.insert(y_data, 0, y_data[-1])
+        trajectory_out[:, Trajectory.X] = np.convolve(
+            x_data, [0.3, 0.4, 0.3], mode='valid')
+        trajectory_out[:, Trajectory.Y] = np.convolve(
+            y_data, [0.3, 0.4, 0.3], mode='valid')
         trajectory_out.fill_curvature()
+
+        vis = SimulatorVisualization(trajectory_out)
 
         # Find points on track with max curvatures
         def find_turns(trajectory: Trajectory) -> np.ndarray:
+            min_curvature_for_full_speed = self.calc_r(
+                self.vehicle.lookup_acc_circle(lon=0.0), self.vehicle.max_speed_mps)
             bottle_necks = []
             for i in range(len(trajectory)):
                 last_curvature = trajectory[trajectory.dec(
@@ -42,8 +109,10 @@ class Simulator:
                 this_curvature = trajectory[i, Trajectory.CURVATURE]
                 next_curvature = trajectory[trajectory.inc(
                     i), Trajectory.CURVATURE]
-                if next_curvature <= this_curvature < last_curvature or next_curvature < this_curvature <= last_curvature:
-                    bottle_necks.append(this_curvature)
+                if (next_curvature >= this_curvature and last_curvature > this_curvature) or \
+                        (next_curvature > this_curvature and last_curvature >= this_curvature):
+                    if (this_curvature < min_curvature_for_full_speed):
+                        bottle_necks.append(i)
             return np.array(bottle_necks, dtype=int)
 
         # Start by identifying where the turns are
@@ -52,26 +121,26 @@ class Simulator:
         # the turn entry index, the turn index, the turn exit index,
         # if the turn entry iteration is stopped, and
         # if the turn exit iteration is stopped
-        iteration_flags = np.repeat(turns, 5, axis=1)
+        iteration_flags = np.repeat(turns[:, np.newaxis], 5, axis=1)
         iteration_flags[:, 3:] = 0
 
         def calc_distance(pt1, pt2):
             return sqrt((pt1[Trajectory.X] - pt2[Trajectory.X]) ** 2 + (pt1[Trajectory.Y] - pt2[Trajectory.Y]) ** 2)
 
-        while(True):
-            # For every turn, assume zero lon acc, populate initial conditions
-            for turn in turns:
-                turn_pt = trajectory_out[turn]
-                turn_pt[Trajectory.SPEED] = min(self.calc_v(self.vehicle.lookup_acc_circle(lon=0.0),
-                                                            turn_pt[Trajectory.CURVATURE]), self.vehicle.max_speed_mps)
-                turn_pt[Trajectory.LON_ACC] = 0.0
-                turn_pt[Trajectory.LAT_ACC] = self.calc_lat_acc(
-                    turn_pt[Trajectory.SPEED], turn_pt[Trajectory.CURVATURE])
-                turn_pt[Trajectory.ITERATION_FLAG] = turn
+        # For every turn, assume zero lon acc, populate initial conditions
+        for turn in turns:
+            turn_pt = trajectory_out[turn]
+            turn_pt[Trajectory.SPEED] = min(self.calc_v(self.vehicle.lookup_acc_circle(lon=0.0),
+                                                        turn_pt[Trajectory.CURVATURE]), self.vehicle.max_speed_mps)
+            turn_pt[Trajectory.LON_ACC] = 0.0
+            turn_pt[Trajectory.LAT_ACC] = self.calc_lat_acc(
+                turn_pt[Trajectory.SPEED], turn_pt[Trajectory.CURVATURE])
+            turn_pt[Trajectory.ITERATION_FLAG] = turn
 
+        while(True):
             # For every turn, enter it as fast as possible
             for flags in iteration_flags:
-                stopped = flags[3]
+                stopped = flags[3] == 1
                 if (stopped):
                     continue
                 last_enter_pt = trajectory_out[flags[0]]
@@ -82,8 +151,8 @@ class Simulator:
                 # Get the possible speed ranges from the last state
                 dt = dd / last_enter_pt[Trajectory.SPEED]
                 max_dacc = dt * self.vehicle.max_jerk
-                max_acc = last_enter_pt[Trajectory.LON_ACC] + max_dacc
-                min_acc = last_enter_pt[Trajectory.LON_ACC] - max_dacc
+                max_acc = -1.0 * last_enter_pt[Trajectory.LON_ACC] + max_dacc
+                min_acc = -1.0 * last_enter_pt[Trajectory.LON_ACC] - max_dacc
                 vehicle_max_acc = self.vehicle.lookup_acc_from_speed(
                     last_enter_pt[Trajectory.SPEED])
                 vehicle_max_dcc = self.vehicle.lookup_dcc_from_speed(
@@ -116,10 +185,14 @@ class Simulator:
                     # If their speed is slower, do not overwrite because it will not meet their kinematic constraint
                     # Instead, wait for them to overwrite our speed
                     # If our speed is slower, overwrite becuase their speed will not meet our kinematic constraint
-                    if enter_pt[Trajectory.ITERATION_FLAG] != -1 and enter_pt[Trajectory.SPEED] < max_greedy_speed:
+                    if enter_pt[Trajectory.ITERATION_FLAG] != -1 and \
+                            enter_pt[Trajectory.SPEED] < max_greedy_speed:
                         # Signal the stop flag
                         flags[3] = 1
                     else:
+                        if not (min_acc <= enter_pt[Trajectory.LON_ACC] <= max_acc):
+                            # Signal the merge mode flag
+                            flags[3] = -1
                         # if valid, make it final
                         enter_pt[Trajectory.SPEED] = max_greedy_speed
                         # a = (v^2 - v_0^2) / (2x)
@@ -135,7 +208,7 @@ class Simulator:
 
             # For every turn, exit it as fast as possible
             for flags in iteration_flags:
-                stopped = flags[4]
+                stopped = flags[4] == 1
                 if (stopped):
                     continue
                 last_exit_pt = trajectory_out[flags[2]]
@@ -180,10 +253,14 @@ class Simulator:
                     # If their speed is slower, do not overwrite because it will not meet their kinematic constraint
                     # Instead, wait for them to overwrite our speed
                     # If our speed is slower, overwrite becuase their speed will not meet our kinematic constraint
-                    if exit_pt[Trajectory.ITERATION_FLAG] != -1 and exit_pt[Trajectory.SPEED] < max_greedy_speed:
+                    if exit_pt[Trajectory.ITERATION_FLAG] != -1 and \
+                            exit_pt[Trajectory.SPEED] < max_greedy_speed:
                         # Signal the stop flag
                         flags[4] = 1
                     else:
+                        if not (min_acc <= exit_pt[Trajectory.LON_ACC] <= max_acc):
+                            # Signal the merge mode flag
+                            flags[4] = -1
                         # if valid, make it final
                         exit_pt[Trajectory.SPEED] = max_greedy_speed
                         # a = (v^2 - v_0^2) / (2x)
@@ -197,6 +274,7 @@ class Simulator:
                     # Signal the stop flag
                     flags[4] = 1
 
+            vis.update_plot(0.01)
             # Check if all iterations are stopped
             if (np.all(iteration_flags[:, 3:] == 1)):
                 break
@@ -204,6 +282,8 @@ class Simulator:
         # Populate the time and distance fields
         trajectory_out.fill_time()
         trajectory_out.fill_distance()
+
+        vis.latch_plot()
 
         return SimulationResult(
             trajectory=trajectory_out,

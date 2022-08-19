@@ -75,17 +75,17 @@ class Trajectory:
             this, next = i, i + 1
             if next == len(self.points):
                 next = 0
-        x = self.distance(self.points[this], self.points[next])
-        self.points[next, Trajectory.DIST_TO_SF_BWD] = x + \
-            self.points[this, Trajectory.DIST_TO_SF_BWD]
+            x = self.distance(self.points[this], self.points[next])
+            self.points[next, Trajectory.DIST_TO_SF_BWD] = x + \
+                self.points[this, Trajectory.DIST_TO_SF_BWD]
 
         for i in reversed(range(len(self.points))):
             this, next = i, i + 1
             if next == len(self.points):
                 next = 0
-        x = self.distance(self.points[this], self.points[next])
-        self.points[this, Trajectory.DIST_TO_SF_FWD] = x + \
-            self.points[next, Trajectory.DIST_TO_SF_FWD]
+            x = self.distance(self.points[this], self.points[next])
+            self.points[this, Trajectory.DIST_TO_SF_FWD] = x + \
+                self.points[next, Trajectory.DIST_TO_SF_FWD]
 
     def set(self, idx: int, field: int, val: float):
         self.points[idx, field] = val
@@ -101,7 +101,7 @@ class Trajectory:
 
     def dec(self, idx: int):
         if idx - 1 < 0:
-            return len(self.points - 1)
+            return len(self.points) - 1
         else:
             return idx - 1
 

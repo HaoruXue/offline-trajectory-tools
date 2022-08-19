@@ -16,26 +16,26 @@ class Vehicle:
     max_steer_rad: float = 0.523599
     max_speed_mps: float = 30.0
     max_jerk: float = 5.0
-    g_circle_radius_mpss = 15.0
+    g_circle_radius_mpss: float = 15.0
     x_front: float = 1.0
     x_rear: float = -0.2
     y_left: float = 0.5
     y_right: float = 0.5
 
     def lookup_downforce_from_speed(self, speed_mps: float):
-        return np.interp(speed_mps, self.downforce_speed_lookup[:, 0], self.downforce_speed_lookup[:, 1])
+        return np.interp(speed_mps, self.downforce_speed_lookup[0, :], self.downforce_speed_lookup[1, :])
 
     def lookup_steer_radius_from_speed(self, speed_mps: float):
-        return np.interp(speed_mps, self.steer_radius_speed_lookup[:, 0], self.steer_radius_speed_lookup[:, 1])
+        return np.interp(speed_mps, self.steer_radius_speed_lookup[0, :], self.steer_radius_speed_lookup[1, :])
 
     def lookup_speed_from_steer_radius(self, steer_radius_m: float):
-        return np.interp(steer_radius_m, np.flip(self.steer_radius_speed_lookup[:, 1]), np.flip(self.steer_radius_speed_lookup[:, 0]))
+        return np.interp(steer_radius_m, np.flip(self.steer_radius_speed_lookup[1, :]), np.flip(self.steer_radius_speed_lookup[0, :]))
 
     def lookup_acc_from_speed(self, speed_mps: float):
-        return np.interp(speed_mps, self.acc_speed_lookup[:, 0], self.acc_speed_lookup[:, 1])
+        return np.interp(speed_mps, self.acc_speed_lookup[0, :], self.acc_speed_lookup[1, :])
 
     def lookup_dcc_from_speed(self, speed_mps: float):
-        return np.interp(speed_mps, self.dcc_speed_lookup[:, 0], self.dcc_speed_lookup[:, 1])
+        return np.interp(speed_mps, self.dcc_speed_lookup[0, :], self.dcc_speed_lookup[1, :])
 
     def lookup_acc_circle(self, lat=None, lon=None):
         if (lat is not None and lon is not None):
@@ -52,7 +52,7 @@ class Vehicle:
         if abs(val) > Vehicle.g_circle_radius_mpss:
             return None
         else:
-            return np.sqrt(Vehicle.g_circle_radius_mpss ** 2 - lat ** 2)
+            return np.sqrt(Vehicle.g_circle_radius_mpss ** 2 - val ** 2)
             
 
 @dataclass
@@ -88,7 +88,7 @@ class VehicleModel:
         self.ss = SteadyState(front_load, rear_load)
 
     def get_lon_loads(self, acc:float):
-        
+        pass
 
     def get_min_steer_radius(self, speed:float, acc:float):
         # calculate the load on front and rear axle
