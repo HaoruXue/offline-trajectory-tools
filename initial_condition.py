@@ -358,7 +358,7 @@ def export(event):
     try:
         b_traj = interactor.to_bezier_trajectory()
         traj = BezierTrajectory.sample_along(
-            b_traj.get_all_curves(), 0.02, evenly_space=True)
+            b_traj.get_all_curves(), 0.2, evenly_space=True)
         traj.ttl_num = ttl_num
         with open(file_path, 'w') as f:
             f.write(",".join([str(traj.ttl_num), str(len(traj)),
