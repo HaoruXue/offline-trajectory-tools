@@ -7,7 +7,7 @@ import sys
 
 sys.path.append("/home/haoru/Projects/IAC/offline-trajectory-optimization")
 
-ttl = load_ttl("PURDUE_ENU_TTL_RIGHT_2.csv")
+ttl = load_ttl("purdue_ttl.csv")
 traj = Trajectory(len(ttl))
 traj[:, 0:2] = ttl[:, 0:2]
 
@@ -18,9 +18,9 @@ vehicle = Vehicle(
                               15.0, 12.0, 9.0, 6.0, 3.0, 0.0, 0.0]]),
     dcc_speed_lookup=np.array([[0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0],
                               [-15.0, -15.0, -15.0, -15.0, -15.0, -15.0, -15.0]]),
-    g_circle_radius_mpss=1.5
+    g_circle_radius_mpss=20.0
 )
 
 simulator = Simulator(vehicle)
-result = simulator.run_simulation(traj)
+result = simulator.run_simulation(traj, enable_vis=True)
 print(result)

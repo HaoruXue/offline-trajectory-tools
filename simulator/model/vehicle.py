@@ -39,7 +39,7 @@ class Vehicle:
 
     def lookup_acc_circle(self, lat=None, lon=None):
         if (lat is not None and lon is not None):
-            return lat ** 2 + lon ** 2 <= Vehicle.g_circle_radius_mpss ** 2
+            return lat ** 2 + lon ** 2 <= self.g_circle_radius_mpss ** 2
 
         val = None
         if lat is not None:
@@ -49,10 +49,10 @@ class Vehicle:
         else:
             return None
         
-        if abs(val) > Vehicle.g_circle_radius_mpss:
+        if abs(val) > self.g_circle_radius_mpss:
             return 0.0
         else:
-            return np.sqrt(Vehicle.g_circle_radius_mpss ** 2 - val ** 2)
+            return np.sqrt(self.g_circle_radius_mpss ** 2 - val ** 2)
             
 
 @dataclass
