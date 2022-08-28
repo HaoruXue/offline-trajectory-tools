@@ -80,13 +80,13 @@ def create_new(event):
             pathdata.append((Path.MOVETO, pt1))
         else:
             pathdata.append((Path.LINETO, pt1))
-        ct1 = (pt1[0] + np.cos(this_rad + np.pi / 2) * radius / 2,
-               pt1[1] + np.sin(this_rad + np.pi / 2) * radius / 2)
+        ct1 = (pt1[0] + np.cos(this_rad + np.pi / 2) * radius / 4,
+               pt1[1] + np.sin(this_rad + np.pi / 2) * radius / 4)
         pathdata.append((Path.CURVE4, ct1))
         pt2 = (center[0] + np.cos(next_rad) * radius,
                center[1] + np.sin(next_rad) * radius)
-        ct2 = (pt2[0] + np.cos(next_rad - np.pi / 2) * radius / 2,
-               pt2[1] + np.sin(next_rad - np.pi / 2) * radius / 2)
+        ct2 = (pt2[0] + np.cos(next_rad - np.pi / 2) * radius / 4,
+               pt2[1] + np.sin(next_rad - np.pi / 2) * radius / 4)
         pathdata.append((Path.CURVE4, ct2))
         pathdata.append((Path.CURVE4, pt2))
         rad += rad_inc
@@ -364,17 +364,18 @@ def export(event):
             f.write(",".join([str(traj.ttl_num), str(len(traj)),
                     str(traj[0, Trajectory.DIST_TO_SF_FWD])]))
             f.write("\n")
-            np.savetxt(f,traj.points, delimiter=',')
+            np.savetxt(f, traj.points, delimiter=',')
         root = tk.Tk()
         root.withdraw()
-        showinfo("Export TTL", f"TTL {ttl_num} successfully exported to {file_path}")
+        showinfo("Export TTL",
+                 f"TTL {ttl_num} successfully exported to {file_path}")
         root.destroy()
     except Exception as e:
         root = tk.Tk()
         root.withdraw()
-        showinfo("Export TTL", f"TTL {ttl_num} failed to export\nException details:\n{e}")
+        showinfo("Export TTL",
+                 f"TTL {ttl_num} failed to export\nException details:\n{e}")
         root.destroy()
-
 
 
 axbexport = plt.axes([0.5, 0.0, 0.1, 0.05])
