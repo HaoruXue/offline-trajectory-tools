@@ -86,13 +86,9 @@ class Simulator:
                 this_curvature = trajectory[i, Trajectory.CURVATURE]
                 next_curvature = trajectory[trajectory.inc(
                     i), Trajectory.CURVATURE]
-                # if (next_curvature >= this_curvature and last_curvature > this_curvature) or \
-                #         (next_curvature > this_curvature and last_curvature >= this_curvature) or \
-                #         (last_curvature >= min_curvature_for_full_speed and this_curvature < min_curvature_for_full_speed):
-                #     if (this_curvature < min_curvature_for_full_speed):
-                #         bottle_necks.append(i)
-                if (this_curvature < min_curvature_for_full_speed):
-                    bottle_necks.append(i)
+                if (last_curvature > this_curvature or next_curvature > this_curvature):
+                    if (this_curvature < min_curvature_for_full_speed):
+                        bottle_necks.append(i)
             return np.array(bottle_necks, dtype=int)
 
         # Start by identifying where the turns are

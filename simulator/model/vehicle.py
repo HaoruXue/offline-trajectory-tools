@@ -15,7 +15,7 @@ class Vehicle:
     front_load_ratio: float = 0.45
     max_steer_rad: float = 0.523599
     max_speed_mps: float = 30.0
-    max_jerk: float = 30.0
+    max_jerk: float = 100.0
     g_circle_radius_mpss: float = 15.0
     x_front: float = 1.0
     x_rear: float = -0.2

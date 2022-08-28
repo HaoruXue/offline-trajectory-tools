@@ -18,7 +18,7 @@ vehicle = Vehicle(
                               15.0, 12.0, 9.0, 6.0, 3.0, 0.0, 0.0]]),
     dcc_speed_lookup=np.array([[0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0],
                               [-15.0, -15.0, -15.0, -15.0, -15.0, -15.0, -15.0]]),
-    g_circle_radius_mpss=20.0
+    g_circle_radius_mpss=15.0
 )
 
 simulator = Simulator(vehicle)
