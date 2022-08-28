@@ -8,20 +8,22 @@ from bezier.curve import Curve
 class Trajectory:
     X = 0
     Y = 1
-    YAW = 2
-    CURVATURE = 3
+    Z = 2
+    YAW = 3
     SPEED = 4
-    LON_ACC = 5
-    LAT_ACC = 6
-    TIME = 7
-    IDX = 8
-    DIST_TO_SF_BWD = 9
-    DIST_TO_SF_FWD = 10
-    REGION = 11
-    ITERATION_FLAG = 12
+    CURVATURE = 5
+    LON_ACC = 6
+    LAT_ACC = 7
+    TIME = 8
+    IDX = 9
+    DIST_TO_SF_BWD = 10
+    DIST_TO_SF_FWD = 11
+    REGION = 12
+    ITERATION_FLAG = 13
 
-    def __init__(self, num_point: int) -> None:
-        self.points = np.zeros((num_point, 13), dtype=np.float64)
+    def __init__(self, num_point: int, ttl_num: int = 0) -> None:
+        self.ttl_num = ttl_num
+        self.points = np.zeros((num_point, 14), dtype=np.float64)
         self.points[:, Trajectory.IDX] = np.arange(0, len(self.points), 1)
         self.points[:, Trajectory.ITERATION_FLAG] = -1
 
@@ -210,7 +212,7 @@ class BezierTrajectory:
                 result = np.copy(new)
         return result[:, 1:-1]
 
-    def sample_along(curves: list, interval: float, evenly_space=False) -> np.ndarray:
+    def sample_along(curves: list, interval: float, evenly_space=False) -> Trajectory:
         """Sample along a trajectory
 
         Args:
@@ -227,18 +229,17 @@ class BezierTrajectory:
             interval = total_length / num_sample
         current_curve = 0
         current_length = 0.0
-        result = np.zeros((num_sample, 3), dtype=np.float64)
+        traj = Trajectory(num_sample)
         for i in range(num_sample):
             while(curves[current_curve].length < current_length):
                 current_length -= curves[current_curve].length
                 current_curve += 1
-            result[i, 0:2] = curves[current_curve].evaluate(
+            traj[i, 0:2] = curves[current_curve].evaluate(
                 current_length / curves[current_curve].length).T
-            heading_vector = np.squeeze(curves[current_curve].evaluate_hodograph(
-                current_length / curves[current_curve].length))
-            result[i, 2] = np.arctan2(heading_vector[1], heading_vector[0])
             current_length += interval
-        return result
+        traj.fill_curvature()
+        traj.fill_distance()
+        return traj
 
     def get_length(curves: list) -> float:
         length = 0.0
@@ -260,12 +261,8 @@ if __name__ == "__main__":
     ax.set_aspect('equal')
 
     curves = poly.get_curves(0, 4)
-    samples = BezierTrajectory.sample_along(curves, 0.1)
-    ax.plot(samples[:, 0], samples[:, 1])
-
-    trajectory = Trajectory(len(samples))
-    trajectory.points[:, 0:3] = samples
-    trajectory.fill_curvature()
+    traj = BezierTrajectory.sample_along(curves, 0.1)
+    ax.plot(traj[:, Trajectory.X], traj[:, Trajectory.Y])
 
     control_pts = np.zeros((4, 2))
 
