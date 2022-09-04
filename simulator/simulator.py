@@ -1,4 +1,3 @@
-from gc import enable
 from math import sqrt
 from simulator.model.trajectory import Trajectory
 from simulator.model.vehicle import Vehicle

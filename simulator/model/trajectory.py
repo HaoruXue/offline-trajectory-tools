@@ -1,9 +1,7 @@
 from dataclasses import dataclass
-from re import A
 import matplotlib.pyplot as plt
 import math
 import numpy as np
-from multiprocessing import Pool
 from bezier.curve import Curve
 from shapely.geometry import Point, Polygon
 
