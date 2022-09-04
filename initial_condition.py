@@ -8,11 +8,13 @@ from matplotlib.patches import PathPatch
 from matplotlib.widgets import Button, TextBox, CheckButtons
 import matplotlib.pyplot as plt
 
+import yaml
+
 import tkinter as tk
-from tkinter import filedialog, simpledialog
+from tkinter import filedialog, simpledialog, messagebox
 from tkinter.messagebox import showinfo
 
-from simulator.model.trajectory import BezierTrajectory, Trajectory
+from simulator.model.trajectory import BezierTrajectory, Region, Trajectory
 
 
 fig, ax = plt.subplots()
@@ -20,6 +22,7 @@ ax.set_title('Offline Trajectory Optimization')
 ax.axis('equal')
 pathdata = []
 references = []
+regions = []
 
 
 def open_file(event):
@@ -54,14 +57,37 @@ def open_reference(event):
         ax.plot(references[-1][:, 0], references[-1][:, 1])
 
 
+def open_region_file(event):
+    root = tk.Tk()
+    root.withdraw()
+    file_path = filedialog.askopenfilename()
+    root.destroy()
+    if file_path:
+        with open(file_path, 'r') as f:
+            polygon_dict = yaml.load(f, yaml.SafeLoader)
+        for _, polygon in polygon_dict.items():
+            assert type(polygon) is dict
+            regions.append(
+                Region(polygon['name'], polygon['code'], np.array(polygon['vertices'], dtype=float)))
+        for region in regions:
+            ax.fill(region.vertices[:, 0], region.vertices[:, 1], alpha=0.2)
+
+
 axbnew = plt.axes([0.3, 0.4, 0.2, 0.1])
-axbopen = plt.axes([0.3, 0.55, 0.2, 0.1])
+axbopenregion = plt.axes([0.3, 0.55, 0.4, 0.1])
 axbopenref = plt.axes([0.3, 0.7, 0.4, 0.1])
+axbopen = plt.axes([0.3, 0.25, 0.2, 0.1])
 axbox = fig.add_axes([0.7, 0.4, 0.1, 0.1])
 text_box = TextBox(axbox, label="# new nodes")
 
 
 def create_new(event):
+    if not text_box.text:
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showwarning('Create New Nodes', 'Please enter the number of nodes.')
+        root.destroy()
+        return
     num_pt = int(text_box.text)
     rad_inc = 2 * np.pi / num_pt
     rad = 0.0
@@ -99,6 +125,8 @@ bnew = Button(axbnew, 'New')
 bnew.on_clicked(create_new)
 bopenref = Button(axbopenref, 'Display Reference TTL')
 bopenref.on_clicked(open_reference)
+bopenregion = Button(axbopenregion, 'Display Reference Regions')
+bopenregion.on_clicked(open_region_file)
 plt.show()
 
 fig, ax = plt.subplots()
@@ -305,7 +333,9 @@ interactor = PathInteractor(patch)
 ax.set_title('Create the Initial Path Curve')
 ax.axis('equal')
 for reference in references:
-    ax.plot(reference[:, 0], reference[:, 1])
+    ax.plot(reference[:, 0], reference[:, 1], alpha=0.9)
+for region in regions:
+    ax.fill(region.vertices[:, 0], region.vertices[:, 1], alpha=0.2)
 
 
 def lock_headings(label):
@@ -351,15 +381,19 @@ def export(event):
         confirmoverwrite=True, defaultextension="csv", initialfile="ttl.csv")
     ttl_num = simpledialog.askinteger(
         "TTL Number", "Enter the TTL Number", initialvalue=0, minvalue=0)
-    if ttl_num is None:
-        ttl_num = 0
+    interval = simpledialog.askfloat(
+        "Waypoint Interval", "Enter the waypoint interval (m)", initialvalue=0.2, minvalue=0.0)
     root.destroy()
 
     try:
+        assert ttl_num is not None
+        assert interval is not None and interval > 0.0
         b_traj = interactor.to_bezier_trajectory()
         traj = BezierTrajectory.sample_along(
-            b_traj.get_all_curves(), 0.2, evenly_space=True)
+            b_traj.get_all_curves(), interval, evenly_space=True)
         traj.ttl_num = ttl_num
+        if len(regions) > 0:
+            traj.fill_region(regions)
         with open(file_path, 'w') as f:
             f.write(",".join([str(traj.ttl_num), str(len(traj)),
                     str(traj[0, Trajectory.DIST_TO_SF_FWD])]))

@@ -1,8 +1,18 @@
+from dataclasses import dataclass
 from re import A
 import matplotlib.pyplot as plt
 import math
 import numpy as np
+from multiprocessing import Pool
 from bezier.curve import Curve
+from shapely.geometry import Point, Polygon
+
+
+@dataclass
+class Region:
+    name: str
+    code: int
+    vertices: np.ndarray  # n * 2
 
 
 class Trajectory:
@@ -88,6 +98,20 @@ class Trajectory:
             x = self.distance(self.points[this], self.points[next])
             self.points[this, Trajectory.DIST_TO_SF_FWD] = x + \
                 self.points[next, Trajectory.DIST_TO_SF_FWD]
+
+    def fill_region(self, regions: list):
+        polygons = []
+        for region in regions:
+            polygons.append((Polygon(region.vertices.tolist()), region.code))
+
+        def p_in_p(row: np.ndarray):
+            p = Point([row[Trajectory.X], row[Trajectory.Y]])
+            for polygon, code in polygons:
+                if polygon.contains(p):
+                    row[Trajectory.REGION] = code
+                    return
+
+        np.apply_along_axis(p_in_p, 1, self.points)
 
     def set(self, idx: int, field: int, val: float):
         self.points[idx, field] = val
