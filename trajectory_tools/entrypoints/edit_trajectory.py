@@ -14,7 +14,7 @@ import tkinter as tk
 from tkinter import filedialog, simpledialog, messagebox
 from tkinter.messagebox import showinfo
 
-from simulator.model.trajectory import BezierTrajectory, Region, Trajectory
+from trajectory_tools.simulator.model.trajectory import BezierTrajectory, Region, Trajectory
 
 
 fig, ax = plt.subplots()

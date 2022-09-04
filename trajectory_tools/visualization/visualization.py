@@ -1,4 +1,4 @@
-from simulator.model.trajectory import Trajectory
+from trajectory_tools.simulator.model.trajectory import Trajectory
 import matplotlib.pyplot as plt
 
 

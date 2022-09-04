@@ -1,7 +1,7 @@
 from math import sqrt
-from simulator.model.trajectory import Trajectory
-from simulator.model.vehicle import Vehicle
-from visualization.visualization import SimulatorVisualization
+from trajectory_tools.simulator.model.trajectory import Trajectory
+from trajectory_tools.simulator.model.vehicle import Vehicle
+from trajectory_tools.visualization.visualization import SimulatorVisualization
 from dataclasses import dataclass
 import numpy as np
 import time

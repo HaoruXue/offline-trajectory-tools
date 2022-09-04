@@ -1,11 +1,9 @@
-from simulator.model.trajectory import Trajectory
-from simulator.model.vehicle import Vehicle
-from utils.utils import load_ttl
-from simulator.simulator import SimulationResult, Simulator
+from trajectory_tools.simulator.model.trajectory import Trajectory
+from trajectory_tools.simulator.model.vehicle import Vehicle
+from trajectory_tools.utils.utils import load_ttl
+from trajectory_tools.simulator.simulator import Simulator
 import numpy as np
 import sys
-
-sys.path.append("/home/haoru/Projects/IAC/offline-trajectory-optimization")
 
 ttl = load_ttl("purdue_ttl.csv")
 traj = Trajectory(len(ttl))
