@@ -18,7 +18,7 @@ Note: this will install in experimental mode. Any changes done to the local repo
 
 1. Create a new directory as your trajectory workspace.
 2. In a terminal, change to the new directory, and execute `trajectory_init`.
-3. Edit the configuration and regions file as needed.
+3. Edit the configuration and regions files as needed.
 
 ### Prepare References
 
