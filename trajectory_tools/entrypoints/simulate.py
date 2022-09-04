@@ -31,7 +31,9 @@ def main():
     simulator = Simulator(vehicle)
     result = simulator.run_simulation(traj, enable_vis=True)
     print(result)
-    save_ttl(config['simulation']['output_ttl'])
+    output_path = config["simulation"]["output_ttl"]
+    print(f"Saving ttl to {output_path}")
+    save_ttl(output_path, result.trajectory)
 
 
 if __name__ == "__main__":

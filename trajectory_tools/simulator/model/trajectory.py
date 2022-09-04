@@ -284,11 +284,13 @@ class BezierTrajectory:
             while curves[current_curve].length < current_length:
                 current_length -= curves[current_curve].length
                 current_curve += 1
+            percentage = current_length / curves[current_curve].length
             traj[i, 0:2] = (
                 curves[current_curve]
-                .evaluate(current_length / curves[current_curve].length)
+                .evaluate(percentage)
                 .T
             )
+            traj[i, Trajectory.YAW] = np.arctan2(*curves[current_curve].evaluate_hodograph(percentage))
             current_length += interval
         traj.fill_curvature()
         traj.fill_distance()
