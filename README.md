@@ -9,7 +9,7 @@ This tool enables you to:
 ## Install
 
 1. Clone this repository
-2. `cd offline-trajectory-optimization`
+2. `cd offline-trajectory-tools`
 3. `pip install -e .`
 
 Note: this will install in experimental mode. Any changes done to the local repository will be reflected in the package.
