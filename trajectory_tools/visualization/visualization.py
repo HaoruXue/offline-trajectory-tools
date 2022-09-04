@@ -11,20 +11,32 @@ class SimulatorVisualization:
         self.figure.suptitle("Offline Trajectory Optimization")
 
         self.axs[0].set_title("Speed (m/s)")
-        self.scat_speed = self.axs[0].scatter(self.trajectory[:, Trajectory.X], self.trajectory[:,
-                                                                                                Trajectory.Y], c=self.trajectory[:, Trajectory.SPEED], cmap='plasma')
+        self.scat_speed = self.axs[0].scatter(
+            self.trajectory[:, Trajectory.X],
+            self.trajectory[:, Trajectory.Y],
+            c=self.trajectory[:, Trajectory.SPEED],
+            cmap="plasma",
+        )
         self.figure.colorbar(self.scat_speed, ax=self.axs[0])
         self.axs[0].axis("equal")
 
         self.axs[1].set_title("Lateral Acceleration (m/s^2)")
-        self.scat_lat_acc = self.axs[1].scatter(self.trajectory[:, Trajectory.X], self.trajectory[:,
-                                                                                                  Trajectory.Y], c=self.trajectory[:, Trajectory.LAT_ACC], cmap='plasma')
+        self.scat_lat_acc = self.axs[1].scatter(
+            self.trajectory[:, Trajectory.X],
+            self.trajectory[:, Trajectory.Y],
+            c=self.trajectory[:, Trajectory.LAT_ACC],
+            cmap="plasma",
+        )
         self.figure.colorbar(self.scat_lat_acc, ax=self.axs[1])
         self.axs[1].axis("equal")
 
         self.axs[2].set_title("Longitudinal Acceleration (m/s^2)")
-        self.scat_lon_acc = self.axs[2].scatter(self.trajectory[:, Trajectory.X], self.trajectory[:,
-                                                                                                  Trajectory.Y], c=self.trajectory[:, Trajectory.LON_ACC], cmap='bwr')
+        self.scat_lon_acc = self.axs[2].scatter(
+            self.trajectory[:, Trajectory.X],
+            self.trajectory[:, Trajectory.Y],
+            c=self.trajectory[:, Trajectory.LON_ACC],
+            cmap="bwr",
+        )
         self.figure.colorbar(self.scat_lon_acc, ax=self.axs[2])
         self.axs[2].axis("equal")
 

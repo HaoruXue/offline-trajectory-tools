@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 GRAVITY = 9.81
 
+
 @dataclass
 class Vehicle:
     downforce_speed_lookup: np.ndarray
@@ -23,23 +24,39 @@ class Vehicle:
     y_right: float = 0.5
 
     def lookup_downforce_from_speed(self, speed_mps: float):
-        return np.interp(speed_mps, self.downforce_speed_lookup[0, :], self.downforce_speed_lookup[1, :])
+        return np.interp(
+            speed_mps,
+            self.downforce_speed_lookup[0, :],
+            self.downforce_speed_lookup[1, :],
+        )
 
     def lookup_steer_radius_from_speed(self, speed_mps: float):
-        return np.interp(speed_mps, self.steer_radius_speed_lookup[0, :], self.steer_radius_speed_lookup[1, :])
+        return np.interp(
+            speed_mps,
+            self.steer_radius_speed_lookup[0, :],
+            self.steer_radius_speed_lookup[1, :],
+        )
 
     def lookup_speed_from_steer_radius(self, steer_radius_m: float):
-        return np.interp(steer_radius_m, np.flip(self.steer_radius_speed_lookup[1, :]), np.flip(self.steer_radius_speed_lookup[0, :]))
+        return np.interp(
+            steer_radius_m,
+            np.flip(self.steer_radius_speed_lookup[1, :]),
+            np.flip(self.steer_radius_speed_lookup[0, :]),
+        )
 
     def lookup_acc_from_speed(self, speed_mps: float):
-        return np.interp(speed_mps, self.acc_speed_lookup[0, :], self.acc_speed_lookup[1, :])
+        return np.interp(
+            speed_mps, self.acc_speed_lookup[0, :], self.acc_speed_lookup[1, :]
+        )
 
     def lookup_dcc_from_speed(self, speed_mps: float):
-        return np.interp(speed_mps, self.dcc_speed_lookup[0, :], self.dcc_speed_lookup[1, :])
+        return np.interp(
+            speed_mps, self.dcc_speed_lookup[0, :], self.dcc_speed_lookup[1, :]
+        )
 
     def lookup_acc_circle(self, lat=None, lon=None):
-        if (lat is not None and lon is not None):
-            return lat ** 2 + lon ** 2 <= self.g_circle_radius_mpss ** 2
+        if lat is not None and lon is not None:
+            return lat**2 + lon**2 <= self.g_circle_radius_mpss**2
 
         val = None
         if lat is not None:
@@ -48,12 +65,12 @@ class Vehicle:
             val = lon
         else:
             return None
-        
+
         if abs(val) > self.g_circle_radius_mpss:
             return 0.0
         else:
-            return np.sqrt(self.g_circle_radius_mpss ** 2 - val ** 2)
-            
+            return np.sqrt(self.g_circle_radius_mpss**2 - val**2)
+
 
 @dataclass
 class ModelVehicle:
@@ -74,6 +91,7 @@ class ModelVehicle:
     y_left: float = 0.5
     y_right: float = 0.5
 
+
 @dataclass
 class SteadyState:
     load_front: float
@@ -81,15 +99,25 @@ class SteadyState:
 
 
 class VehicleModel:
-    def __init__(self, vehicle:ModelVehicle) -> None:
+    def __init__(self, vehicle: ModelVehicle) -> None:
         self.v = vehicle
-        front_load = GRAVITY * self.v.mass * (self.v.wheel_base - self.v.cg_distance_to_rear_axle) / self.v.wheel_base
-        rear_load = GRAVITY * self.v.mass * (self.v.cg_distance_to_rear_axle) / self.v.wheel_base
+        front_load = (
+            GRAVITY
+            * self.v.mass
+            * (self.v.wheel_base - self.v.cg_distance_to_rear_axle)
+            / self.v.wheel_base
+        )
+        rear_load = (
+            GRAVITY
+            * self.v.mass
+            * (self.v.cg_distance_to_rear_axle)
+            / self.v.wheel_base
+        )
         self.ss = SteadyState(front_load, rear_load)
 
-    def get_lon_loads(self, acc:float):
+    def get_lon_loads(self, acc: float):
         pass
 
-    def get_min_steer_radius(self, speed:float, acc:float):
+    def get_min_steer_radius(self, speed: float, acc: float):
         # calculate the load on front and rear axle
         pass

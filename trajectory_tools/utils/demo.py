@@ -21,8 +21,7 @@ pathdata = [
 
 codes, verts = zip(*pathdata)
 path = Path(verts, codes)
-patch = PathPatch(
-    path, facecolor='green', edgecolor='yellow', alpha=0.5)
+patch = PathPatch(path, facecolor="green", edgecolor="yellow", alpha=0.5)
 ax.add_patch(patch)
 
 
@@ -46,16 +45,15 @@ class PathInteractor:
 
         x, y = zip(*self.pathpatch.get_path().vertices)
 
-        self.line, = ax.plot(
-            x, y, marker='o', markerfacecolor='r', animated=True)
+        (self.line,) = ax.plot(x, y, marker="o", markerfacecolor="r", animated=True)
 
         self._ind = None  # the active vertex
 
-        canvas.mpl_connect('draw_event', self.on_draw)
-        canvas.mpl_connect('button_press_event', self.on_button_press)
-        canvas.mpl_connect('key_press_event', self.on_key_press)
-        canvas.mpl_connect('button_release_event', self.on_button_release)
-        canvas.mpl_connect('motion_notify_event', self.on_mouse_move)
+        canvas.mpl_connect("draw_event", self.on_draw)
+        canvas.mpl_connect("button_press_event", self.on_button_press)
+        canvas.mpl_connect("key_press_event", self.on_key_press)
+        canvas.mpl_connect("button_release_event", self.on_button_release)
+        canvas.mpl_connect("motion_notify_event", self.on_mouse_move)
         self.canvas = canvas
 
     def get_ind_under_point(self, event):
@@ -67,7 +65,7 @@ class PathInteractor:
         xy = np.asarray(self.pathpatch.get_path().vertices)
         xyt = self.pathpatch.get_transform().transform(xy)
         xt, yt = xyt[:, 0], xyt[:, 1]
-        d = np.sqrt((xt - event.x)**2 + (yt - event.y)**2)
+        d = np.sqrt((xt - event.x) ** 2 + (yt - event.y) ** 2)
         ind = d.argmin()
 
         if d[ind] >= self.epsilon:
@@ -84,16 +82,17 @@ class PathInteractor:
 
     def on_button_press(self, event):
         """Callback for mouse button presses."""
-        if (event.inaxes is None
-                or event.button != MouseButton.LEFT
-                or not self.showverts):
+        if (
+            event.inaxes is None
+            or event.button != MouseButton.LEFT
+            or not self.showverts
+        ):
             return
         self._ind = self.get_ind_under_point(event)
 
     def on_button_release(self, event):
         """Callback for mouse button releases."""
-        if (event.button != MouseButton.LEFT
-                or not self.showverts):
+        if event.button != MouseButton.LEFT or not self.showverts:
             return
         self._ind = None
 
@@ -101,7 +100,7 @@ class PathInteractor:
         """Callback for key presses."""
         if not event.inaxes:
             return
-        if event.key == 't':
+        if event.key == "t":
             self.showverts = not self.showverts
             self.line.set_visible(self.showverts)
             if not self.showverts:
@@ -110,10 +109,12 @@ class PathInteractor:
 
     def on_mouse_move(self, event):
         """Callback for mouse movements."""
-        if (self._ind is None
-                or event.inaxes is None
-                or event.button != MouseButton.LEFT
-                or not self.showverts):
+        if (
+            self._ind is None
+            or event.inaxes is None
+            or event.button != MouseButton.LEFT
+            or not self.showverts
+        ):
             return
 
         vertices = self.pathpatch.get_path().vertices
@@ -128,7 +129,7 @@ class PathInteractor:
 
 
 interactor = PathInteractor(patch)
-ax.set_title('drag vertices to update path')
+ax.set_title("drag vertices to update path")
 ax.set_xlim(-3, 4)
 ax.set_ylim(-3, 4)
 

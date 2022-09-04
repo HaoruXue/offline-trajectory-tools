@@ -35,19 +35,27 @@ class Trajectory:
         self.points[:, Trajectory.IDX] = np.arange(0, len(self.points), 1)
         self.points[:, Trajectory.ITERATION_FLAG] = -1
 
-    def get_curvature_from_three_points(p1: np.ndarray, p2: np.ndarray, p3: np.ndarray) -> float:
+    def get_curvature_from_three_points(
+        p1: np.ndarray, p2: np.ndarray, p3: np.ndarray
+    ) -> float:
         try:
-            x, y, z = complex(p1[0], p1[1]), complex(
-                p2[0], p2[1]), complex(p3[0], p3[1])
+            x, y, z = (
+                complex(p1[0], p1[1]),
+                complex(p2[0], p2[1]),
+                complex(p3[0], p3[1]),
+            )
             w = z - x
             w /= y - x
-            c = (x - y) * (w - abs(w)**2) / 2j / w.imag - x
+            c = (x - y) * (w - abs(w) ** 2) / 2j / w.imag - x
             return abs(c + x)
         except ZeroDivisionError:
             return math.inf
 
     def distance(self, pt1, pt2):
-        return math.sqrt((pt1[Trajectory.X] - pt2[Trajectory.X]) ** 2 + (pt1[Trajectory.Y] - pt2[Trajectory.Y]) ** 2)
+        return math.sqrt(
+            (pt1[Trajectory.X] - pt2[Trajectory.X]) ** 2
+            + (pt1[Trajectory.Y] - pt2[Trajectory.Y]) ** 2
+        )
 
     def fill_curvature(self):
         for i in range(len(self.points)):
@@ -56,15 +64,17 @@ class Trajectory:
                 a = len(self.points) - 1
             if c >= len(self.points):
                 c = 0
-            self.points[i, Trajectory.CURVATURE] = Trajectory.get_curvature_from_three_points(
-                self.points[a, 0:2], self.points[b, 0:2], self.points[c, 0:2])
+            self.points[
+                i, Trajectory.CURVATURE
+            ] = Trajectory.get_curvature_from_three_points(
+                self.points[a, 0:2], self.points[b, 0:2], self.points[c, 0:2]
+            )
 
     def fill_time(self):
         # Check for zero speeds
         for pt in self.points:
             if pt[Trajectory.SPEED] == 0.0 and pt[Trajectory.LON_ACC == 0.0]:
-                raise Exception(
-                    "Zero speed and lon_acc encoutered. Cannot fill time.")
+                raise Exception("Zero speed and lon_acc encoutered. Cannot fill time.")
 
         self.points[0, Trajectory.TIME] = 0.0
         for i in range(len(self.points)):
@@ -73,10 +83,14 @@ class Trajectory:
                 next = 0
             # x = 1/2 * (v_0 + v) * t
             x = self.distance(self.points[this], self.points[next])
-            self.points[next, Trajectory.TIME] = x / (0.5 * (
-                self.points[this, Trajectory.SPEED] + self.points[next, Trajectory.SPEED]))
-            self.points[next, Trajectory.TIME] += self.points[this,
-                                                              Trajectory.TIME]
+            self.points[next, Trajectory.TIME] = x / (
+                0.5
+                * (
+                    self.points[this, Trajectory.SPEED]
+                    + self.points[next, Trajectory.SPEED]
+                )
+            )
+            self.points[next, Trajectory.TIME] += self.points[this, Trajectory.TIME]
 
     def fill_distance(self):
         self.points[0, Trajectory.DIST_TO_SF_BWD] = 0.0
@@ -86,16 +100,18 @@ class Trajectory:
             if next == len(self.points):
                 next = 0
             x = self.distance(self.points[this], self.points[next])
-            self.points[next, Trajectory.DIST_TO_SF_BWD] = x + \
-                self.points[this, Trajectory.DIST_TO_SF_BWD]
+            self.points[next, Trajectory.DIST_TO_SF_BWD] = (
+                x + self.points[this, Trajectory.DIST_TO_SF_BWD]
+            )
 
         for i in reversed(range(len(self.points))):
             this, next = i, i + 1
             if next == len(self.points):
                 next = 0
             x = self.distance(self.points[this], self.points[next])
-            self.points[this, Trajectory.DIST_TO_SF_FWD] = x + \
-                self.points[next, Trajectory.DIST_TO_SF_FWD]
+            self.points[this, Trajectory.DIST_TO_SF_FWD] = (
+                x + self.points[next, Trajectory.DIST_TO_SF_FWD]
+            )
 
     def fill_region(self, regions: list):
         polygons = []
@@ -159,28 +175,37 @@ class BezierPoint:
     RATIO = 7
 
     def get_control_point(arr: np.ndarray):
-        return np.array([
-            arr[BezierPoint.LIM_A_X] + (arr[BezierPoint.LIM_B_X] -
-                                        arr[BezierPoint.LIM_A_X]) * arr[BezierPoint.RATIO],
-            arr[BezierPoint.LIM_A_Y] + (arr[BezierPoint.LIM_B_Y] -
-                                        arr[BezierPoint.LIM_A_Y]) * arr[BezierPoint.RATIO]
-        ], dtype=np.float64)
+        return np.array(
+            [
+                arr[BezierPoint.LIM_A_X]
+                + (arr[BezierPoint.LIM_B_X] - arr[BezierPoint.LIM_A_X])
+                * arr[BezierPoint.RATIO],
+                arr[BezierPoint.LIM_A_Y]
+                + (arr[BezierPoint.LIM_B_Y] - arr[BezierPoint.LIM_A_Y])
+                * arr[BezierPoint.RATIO],
+            ],
+            dtype=np.float64,
+        )
 
     def get_fwd_node(arr: np.ndarray):
         ctrl_pt = BezierPoint.get_control_point(arr)
-        return np.array([
-            ctrl_pt[0] + arr[BezierPoint.FWD] * np.cos(arr[BezierPoint.YAW]),
-            ctrl_pt[1] + arr[BezierPoint.FWD] * np.sin(arr[BezierPoint.YAW]),
-        ])
+        return np.array(
+            [
+                ctrl_pt[0] + arr[BezierPoint.FWD] * np.cos(arr[BezierPoint.YAW]),
+                ctrl_pt[1] + arr[BezierPoint.FWD] * np.sin(arr[BezierPoint.YAW]),
+            ]
+        )
 
     def get_bwd_node(arr: np.ndarray):
         ctrl_pt = BezierPoint.get_control_point(arr)
-        return np.array([
-            ctrl_pt[0] + arr[BezierPoint.BWD] *
-            np.cos(arr[BezierPoint.YAW] + np.pi),
-            ctrl_pt[1] + arr[BezierPoint.BWD] *
-            np.sin(arr[BezierPoint.YAW] + np.pi),
-        ])
+        return np.array(
+            [
+                ctrl_pt[0]
+                + arr[BezierPoint.BWD] * np.cos(arr[BezierPoint.YAW] + np.pi),
+                ctrl_pt[1]
+                + arr[BezierPoint.BWD] * np.sin(arr[BezierPoint.YAW] + np.pi),
+            ]
+        )
 
 
 class BezierTrajectory:
@@ -206,16 +231,17 @@ class BezierTrajectory:
     def get_curve(self, start_idx: int) -> Curve:
         length = 2
         end_idx = start_idx + length
-        if (end_idx >= len(self.points)):
+        if end_idx >= len(self.points):
             end_idx -= len(self.points)
         if end_idx == start_idx:
             return None
         elif end_idx < start_idx:
-            shift = -(end_idx+1)
+            shift = -(end_idx + 1)
             new_start_idx = start_idx + shift
             new_end_idx = new_start_idx + length
-            points = np.roll(self.points, shift=-(end_idx+1),
-                             axis=0)[new_start_idx:new_end_idx]
+            points = np.roll(self.points, shift=-(end_idx + 1), axis=0)[
+                new_start_idx:new_end_idx
+            ]
         else:
             points = self.points[start_idx:end_idx]
         return Curve.from_nodes(self.get_nodes(points))
@@ -223,11 +249,13 @@ class BezierTrajectory:
     def get_nodes(self, arr: np.array):
         result = None
         for bezier_pt in arr:
-            new = np.column_stack((
-                BezierPoint.get_bwd_node(bezier_pt),
-                BezierPoint.get_control_point(bezier_pt),
-                BezierPoint.get_fwd_node(bezier_pt)
-            ))
+            new = np.column_stack(
+                (
+                    BezierPoint.get_bwd_node(bezier_pt),
+                    BezierPoint.get_control_point(bezier_pt),
+                    BezierPoint.get_fwd_node(bezier_pt),
+                )
+            )
             if result is not None:
                 result = np.column_stack((result, new))
             else:
@@ -253,11 +281,14 @@ class BezierTrajectory:
         current_length = 0.0
         traj = Trajectory(num_sample)
         for i in range(num_sample):
-            while(curves[current_curve].length < current_length):
+            while curves[current_curve].length < current_length:
                 current_length -= curves[current_curve].length
                 current_curve += 1
-            traj[i, 0:2] = curves[current_curve].evaluate(
-                current_length / curves[current_curve].length).T
+            traj[i, 0:2] = (
+                curves[current_curve]
+                .evaluate(current_length / curves[current_curve].length)
+                .T
+            )
             current_length += interval
         traj.fill_curvature()
         traj.fill_distance()
@@ -272,15 +303,17 @@ class BezierTrajectory:
 
 if __name__ == "__main__":
     poly = BezierTrajectory(4)
-    poly.points = np.array([
-        [5.49779, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 0.5],
-        [0.785398, 1.0, 1.0, 3.0, -1.0, 5.0, 1.0, 0.5],
-        [2.35619, 1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 0.5],
-        [3.92699, 1.0, 1.0, -1.0, 3.0, 1.0, 5.0, 0.5]
-    ])
+    poly.points = np.array(
+        [
+            [5.49779, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 0.5],
+            [0.785398, 1.0, 1.0, 3.0, -1.0, 5.0, 1.0, 0.5],
+            [2.35619, 1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 0.5],
+            [3.92699, 1.0, 1.0, -1.0, 3.0, 1.0, 5.0, 0.5],
+        ]
+    )
 
     fig, ax = plt.subplots()
-    ax.set_aspect('equal')
+    ax.set_aspect("equal")
 
     curves = poly.get_curves(0, 4)
     traj = BezierTrajectory.sample_along(curves, 0.1)

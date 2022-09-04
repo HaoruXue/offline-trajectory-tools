@@ -1,0 +1,18 @@
+# This is an example region file
+
+# p1:
+#   name: pitbox
+#   code: 1
+#   vertices:
+#     - [0.0, 10.0]
+#     - [10.0, 10.0]
+#     - [10.0, 0.0]
+#     - [0.0, 0.0]
+# p2:
+#   name: turn1
+#   code: 2
+#   vertices:
+#     - [0.0, -10.0]
+#     - [-10.0, -10.0]
+#     - [-10.0, 0.0]
+#     - [0.0, 0.0]
