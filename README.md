@@ -38,6 +38,10 @@ To start using the tool, you first need some references:
 7. When done, click on "Save" to save the trajectory which preserves the Bezier curve information and can be loaded again.
 8. Click on "Export" to export the trajectory to TTL with curvature, distance and region information populated. You will be prompted to enter the TTL number and the sampling interval of each waypoint. Note that the sampling interval may not be exact.
 
+![](images/editor_1.png)
+
+![](images/editor_2.png)
+
 ### Load and Edit Existing Trajectory
 
 1. Execute `trajectory_edit`.
@@ -49,3 +53,5 @@ To start using the tool, you first need some references:
 
 1. Modify `simulation_config.yaml` to reflect vehicle dynamics, and specify input and output TTLs.
 2. Execute `trajectory_sim`.
+
+![](images/sim_result.png)
