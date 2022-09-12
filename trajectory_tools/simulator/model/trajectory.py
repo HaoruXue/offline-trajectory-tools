@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 from bezier.curve import Curve
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point, Polygon, asLinearRing, asLineString, LineString, GeometryCollection
 
 
 @dataclass
@@ -11,6 +11,12 @@ class Region:
     name: str
     code: int
     vertices: np.ndarray  # n * 2
+
+@dataclass
+class Bound:
+    name: str
+    type: str
+    vertices: np.ndarray
 
 
 class Trajectory:
@@ -20,18 +26,22 @@ class Trajectory:
     YAW = 3
     SPEED = 4
     CURVATURE = 5
-    LON_ACC = 6
-    LAT_ACC = 7
-    TIME = 8
-    IDX = 9
-    DIST_TO_SF_BWD = 10
-    DIST_TO_SF_FWD = 11
-    REGION = 12
-    ITERATION_FLAG = 13
+    DIST_TO_SF_BWD = 6
+    DIST_TO_SF_FWD = 7
+    REGION = 8
+    LEFT_BOUND_X = 9
+    LEFT_BOUND_Y = 10
+    RIGHT_BOUND_X = 11
+    RIGHT_BOUND_Y = 12
+    LON_ACC = 13
+    LAT_ACC = 14
+    TIME = 15
+    IDX = 16
+    ITERATION_FLAG = 17
 
     def __init__(self, num_point: int, ttl_num: int = 0) -> None:
         self.ttl_num = ttl_num
-        self.points = np.zeros((num_point, 14), dtype=np.float64)
+        self.points = np.zeros((num_point, 18), dtype=np.float64)
         self.points[:, Trajectory.IDX] = np.arange(0, len(self.points), 1)
         self.points[:, Trajectory.ITERATION_FLAG] = -1
 
@@ -74,7 +84,8 @@ class Trajectory:
         # Check for zero speeds
         for pt in self.points:
             if pt[Trajectory.SPEED] == 0.0 and pt[Trajectory.LON_ACC == 0.0]:
-                raise Exception("Zero speed and lon_acc encoutered. Cannot fill time.")
+                raise Exception(
+                    "Zero speed and lon_acc encoutered. Cannot fill time.")
 
         self.points[0, Trajectory.TIME] = 0.0
         for i in range(len(self.points)):
@@ -90,7 +101,8 @@ class Trajectory:
                     + self.points[next, Trajectory.SPEED]
                 )
             )
-            self.points[next, Trajectory.TIME] += self.points[this, Trajectory.TIME]
+            self.points[next, Trajectory.TIME] += self.points[this,
+                                                              Trajectory.TIME]
 
     def fill_distance(self):
         self.points[0, Trajectory.DIST_TO_SF_BWD] = 0.0
@@ -126,6 +138,84 @@ class Trajectory:
                     return
 
         np.apply_along_axis(p_in_p, 1, self.points)
+
+    def fill_bounds(self, bounds: list, max_distance: float):
+        """Fill the left and right bounds. **DO NOT call if yaw is not populated.**
+
+        Args:
+            bounds (list): list of Bound object
+            max_distance (float): max distance for checking bound intersection
+
+        Raises:
+            Exception: if any bound contains invalid geometry type
+        """
+        geoms = []
+        for bound in bounds:
+            if bound.type == 'ring':
+                geoms.append(asLinearRing(bound.vertices))
+            elif bound.type == 'line':
+                geoms.append(asLineString(bound.vertices))
+            else:
+                raise Exception(
+                    "Invalid boundary type. It can be ring or line.")
+
+        def calc_bounds(row: np.ndarray):
+            pt = (row[Trajectory.X], row[Trajectory.Y])
+            ttl_point = Point(pt)
+            left_ang = row[Trajectory.YAW] + np.pi / 2.0
+            left_pt = (row[Trajectory.X] + max_distance * np.cos(left_ang),
+                       row[Trajectory.Y] + max_distance * np.sin(left_ang))
+
+            right_ang = row[Trajectory.YAW] - np.pi / 2.0
+            right_pt = (row[Trajectory.X] + max_distance * np.cos(right_ang),
+                        row[Trajectory.Y] + max_distance * np.sin(right_ang))
+
+            def find_bound(some_pt):
+                min_some_distance = max_distance
+                some_line = LineString((pt, some_pt))
+                some_bound = Point(some_pt)
+                for geom in geoms:
+                    some_intersects = some_line.intersection(geom)
+                    this_some_distance = min_some_distance
+                    this_some_intersection = None
+                    if type(some_intersects) is GeometryCollection:
+                        distances = []
+                        intersections = []
+                        for intersection in list(GeometryCollection):
+                            if type(intersection) is Point:
+                                distances.append(
+                                    ttl_point.distance(intersection))
+                                intersections.append(intersection)
+                            else:
+                                print(
+                                    f"Issue with boundary at index {row[Trajectory.IDX]}: intersection with {geom.name} is not a Point but {type(intersection)}.")
+                        if len(distances) == 0:
+                            print(
+                                f"Issue with boundary at index {row[Trajectory.IDX]}: no Point intersection found with Geometry of name {geom.name}.")
+                        else:
+                            min_dist_idx = np.argmin(np.array(distances))
+                            this_some_distance = distances[min_dist_idx]
+                            this_some_intersection = intersections[min_dist_idx]
+
+                    elif type(some_intersects) is Point:
+                        this_some_distance = ttl_point.distance(some_intersects)
+                        this_some_intersection = some_intersects
+
+                    if this_some_distance < min_some_distance and this_some_intersection is not None:
+                        min_some_distance = this_some_distance
+                        some_bound = this_some_intersection
+
+                return min_some_distance, some_bound
+
+            _, left_bound = find_bound(left_pt)
+            _, right_bound = find_bound(right_pt)
+
+            row[Trajectory.LEFT_BOUND_X] = left_bound.x
+            row[Trajectory.LEFT_BOUND_Y] = left_bound.y
+            row[Trajectory.RIGHT_BOUND_X] = right_bound.x
+            row[Trajectory.RIGHT_BOUND_Y] = right_bound.y
+
+        np.apply_along_axis(calc_bounds, 1, self.points)
 
     def set(self, idx: int, field: int, val: float):
         self.points[idx, field] = val
@@ -191,8 +281,10 @@ class BezierPoint:
         ctrl_pt = BezierPoint.get_control_point(arr)
         return np.array(
             [
-                ctrl_pt[0] + arr[BezierPoint.FWD] * np.cos(arr[BezierPoint.YAW]),
-                ctrl_pt[1] + arr[BezierPoint.FWD] * np.sin(arr[BezierPoint.YAW]),
+                ctrl_pt[0] + arr[BezierPoint.FWD] *
+                np.cos(arr[BezierPoint.YAW]),
+                ctrl_pt[1] + arr[BezierPoint.FWD] *
+                np.sin(arr[BezierPoint.YAW]),
             ]
         )
 
@@ -290,7 +382,8 @@ class BezierTrajectory:
                 .evaluate(percentage)
                 .T
             )
-            traj[i, Trajectory.YAW] = np.arctan2(*curves[current_curve].evaluate_hodograph(percentage))
+            x, y = curves[current_curve].evaluate_hodograph(percentage).squeeze()
+            traj[i, Trajectory.YAW] = np.arctan2(y, x)
             current_length += interval
         traj.fill_curvature()
         traj.fill_distance()

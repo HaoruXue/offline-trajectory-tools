@@ -16,6 +16,7 @@ from tkinter.messagebox import showinfo
 
 from trajectory_tools.simulator.model.trajectory import (
     BezierTrajectory,
+    Bound,
     Region,
     Trajectory,
 )
@@ -29,6 +30,7 @@ def main():
     pathdata = []
     references = []
     regions = []
+    bounds = []
 
     def open_file(event):
         root = tk.Tk()
@@ -36,7 +38,8 @@ def main():
         file_path = filedialog.askopenfilename()
         root.destroy()
         if file_path:
-            path_points = np.loadtxt(file_path, dtype=float, delimiter=",", skiprows=0)
+            path_points = np.loadtxt(
+                file_path, dtype=float, delimiter=",", skiprows=0)
             assert (
                 len(path_points) % 4 == 0 and len(path_points) > 0
             ), "The file does not contain valid trajectory."
@@ -57,7 +60,8 @@ def main():
         root.destroy()
         for file_path in file_paths:
             references.append(
-                np.loadtxt(file_path, dtype=float, delimiter=",", skiprows=1)[:, 0:2]
+                np.loadtxt(file_path, dtype=float,
+                           delimiter=",", skiprows=1)[:, 0:2]
             )
             ax.plot(references[-1][:, 0], references[-1][:, 1])
 
@@ -71,21 +75,48 @@ def main():
                 polygon_dict = yaml.load(f, yaml.SafeLoader)
             for _, polygon in polygon_dict.items():
                 assert type(polygon) is dict
+                vertices = np.loadtxt(
+                    polygon['file'], dtype=float, delimiter=',', skiprows=1)[:, 0:2]
                 regions.append(
                     Region(
                         polygon["name"],
                         polygon["code"],
-                        np.array(polygon["vertices"], dtype=float),
+                        vertices
                     )
                 )
             for region in regions:
-                ax.fill(region.vertices[:, 0], region.vertices[:, 1], alpha=0.2)
+                ax.fill(region.vertices[:, 0],
+                        region.vertices[:, 1], alpha=0.2)
 
-    axbnew = plt.axes([0.3, 0.4, 0.2, 0.1])
-    axbopenregion = plt.axes([0.3, 0.55, 0.4, 0.1])
-    axbopenref = plt.axes([0.3, 0.7, 0.4, 0.1])
-    axbopen = plt.axes([0.3, 0.25, 0.2, 0.1])
-    axbox = fig.add_axes([0.7, 0.4, 0.1, 0.1])
+    def open_boundary_file(event):
+        root = tk.Tk()
+        root.withdraw()
+        file_path = filedialog.askopenfilename()
+        root.destroy()
+        if file_path:
+            with open(file_path, "r") as f:
+                bound_dict = yaml.load(f, yaml.SafeLoader)
+            for _, bound in bound_dict.items():
+                assert type(bound) is dict
+                vertices = np.loadtxt(
+                    bound['file'], dtype=float, delimiter=',', skiprows=1)[:, 0:2]
+
+                bounds.append(
+                    Bound(
+                        bound["name"],
+                        bound["type"],
+                        vertices
+                    )
+                )
+            for bound in bounds:
+                ax.plot(bound.vertices[:, 0], bound.vertices[:, 1])
+
+    axbopenref = plt.axes([0.3, 0.75, 0.4, 0.1])
+    axbopenbound = plt.axes([0.3, 0.6, 0.4, 0.1])
+    axbopenregion = plt.axes([0.3, 0.45, 0.4, 0.1])
+    axbnew = plt.axes([0.3, 0.3, 0.2, 0.1])
+    axbox = fig.add_axes([0.7, 0.3, 0.1, 0.1])
+    axbopen = plt.axes([0.3, 0.15, 0.2, 0.1])
     text_box = TextBox(axbox, label="# new nodes")
 
     def create_new(event):
@@ -143,6 +174,8 @@ def main():
     bopenref.on_clicked(open_reference)
     bopenregion = Button(axbopenregion, "Display Reference Regions")
     bopenregion.on_clicked(open_region_file)
+    bopenbound = Button(axbopenbound, "Display Reference Boundaries")
+    bopenbound.on_clicked(open_boundary_file)
     plt.show()
 
     fig, ax = plt.subplots()
@@ -189,8 +222,8 @@ def main():
             for i in range(0, len(x), 4):
                 self.lines.append(
                     ax.plot(
-                        x[i : i + 4],
-                        y[i : i + 4],
+                        x[i: i + 4],
+                        y[i: i + 4],
                         marker="o",
                         markerfacecolor="r",
                         animated=True,
@@ -284,7 +317,8 @@ def main():
             vertices_roll = np.roll(vertices, roll, axis=0)
             point_type = self._ind % 4
             if point_type == START_POINT or point_type == END_POINT:
-                offset = np.array([event.xdata, event.ydata]) - vertices[self._ind]
+                offset = np.array([event.xdata, event.ydata]
+                                  ) - vertices[self._ind]
                 vertices_roll[0:4] += offset
             elif self._lock_heading:
                 if point_type == CONTROL_POINT_1:
@@ -302,7 +336,8 @@ def main():
                 elif slope_otho == 0.0:
                     x_intersect, y_intersect = px, event.ydata
                 else:
-                    x_intersect = (intercept_otho - intercept) / (slope - slope_otho)
+                    x_intersect = (intercept_otho - intercept) / \
+                        (slope - slope_otho)
                     y_intersect = slope * x_intersect + intercept
                 vertices_roll[(point_type + 2) % 4] = x_intersect, y_intersect
             else:
@@ -331,7 +366,7 @@ def main():
             vertices_roll = np.roll(vertices, 2, axis=0)
 
             for i in range(len(self.lines)):
-                self.lines[i].set_data(vertices_roll[i * 4 : (i + 1) * 4].T)
+                self.lines[i].set_data(vertices_roll[i * 4: (i + 1) * 4].T)
 
             self.canvas.restore_region(self.background)
             self.ax.draw_artist(self.pathpatch)
@@ -365,7 +400,8 @@ def main():
         ax.plot(reference[:, 0], reference[:, 1], alpha=0.9)
     for region in regions:
         ax.fill(region.vertices[:, 0], region.vertices[:, 1], alpha=0.2)
-
+    for bound in bounds:
+        ax.plot(bound.vertices[:, 0], bound.vertices[:, 1])
     def lock_headings(label):
         if label == "Lock Headings":
             if interactor._lock_heading:
@@ -382,7 +418,8 @@ def main():
         interactor.canvas.draw()
 
     axclock = plt.axes([0.1, 0.0, 0.1, 0.05])
-    clock = CheckButtons(axclock, ["Lock Headings", "Hide Vertices"], [False, False])
+    clock = CheckButtons(
+        axclock, ["Lock Headings", "Hide Vertices"], [False, False])
     clock.on_clicked(lock_headings)
 
     def save(event):
@@ -425,6 +462,8 @@ def main():
             traj.ttl_num = ttl_num
             if len(regions) > 0:
                 traj.fill_region(regions)
+            if len(bounds) > 0:
+                traj.fill_bounds(bounds, 20.0)
             save_ttl(file_path, traj)
             root = tk.Tk()
             root.withdraw()
