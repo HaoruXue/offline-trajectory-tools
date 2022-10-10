@@ -31,6 +31,7 @@ def main():
     references = []
     regions = []
     bounds = []
+    bank = None
 
     def open_file(event):
         root = tk.Tk()
@@ -111,9 +112,18 @@ def main():
             for bound in bounds:
                 ax.plot(bound.vertices[:, 0], bound.vertices[:, 1])
 
+    def open_bank_file(event):
+        root = tk.Tk()
+        root.withdraw()
+        file_path = filedialog.askopenfilename()
+        root.destroy()
+        bank = np.loadtxt(file_path, dtype=np.float64, delimiter=',', skiprows=1)
+        print("Banking profile loaded although it will not be displayed.")
+
     axbopenref = plt.axes([0.3, 0.75, 0.4, 0.1])
-    axbopenbound = plt.axes([0.3, 0.6, 0.4, 0.1])
-    axbopenregion = plt.axes([0.3, 0.45, 0.4, 0.1])
+    axbopenbound = plt.axes([0.3, 0.65, 0.4, 0.1])
+    axbopenregion = plt.axes([0.3, 0.55, 0.4, 0.1])
+    axbopenbank = plt.axes([0.3, 0.45, 0.4, 0.1])
     axbnew = plt.axes([0.3, 0.3, 0.2, 0.1])
     axbox = fig.add_axes([0.7, 0.3, 0.1, 0.1])
     axbopen = plt.axes([0.3, 0.15, 0.2, 0.1])
@@ -176,6 +186,8 @@ def main():
     bopenregion.on_clicked(open_region_file)
     bopenbound = Button(axbopenbound, "Display Reference Boundaries")
     bopenbound.on_clicked(open_boundary_file)
+    bopenbank = Button(axbopenbank, "Display Banking Profile")
+    bopenbank.on_clicked(open_bank_file)
     plt.show()
 
     fig, ax = plt.subplots()
@@ -464,6 +476,8 @@ def main():
                 traj.fill_region(regions)
             if len(bounds) > 0:
                 traj.fill_bounds(bounds, 20.0)
+            if bank is not None:
+                traj.fill_bank(bank)
             save_ttl(file_path, traj)
             root = tk.Tk()
             root.withdraw()

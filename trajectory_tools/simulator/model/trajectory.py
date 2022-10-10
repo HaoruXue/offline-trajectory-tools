@@ -12,6 +12,7 @@ class Region:
     code: int
     vertices: np.ndarray  # n * 2
 
+
 @dataclass
 class Bound:
     name: str
@@ -33,15 +34,17 @@ class Trajectory:
     LEFT_BOUND_Y = 10
     RIGHT_BOUND_X = 11
     RIGHT_BOUND_Y = 12
-    LON_ACC = 13
-    LAT_ACC = 14
-    TIME = 15
-    IDX = 16
-    ITERATION_FLAG = 17
+    BANK = 13
+    LON_ACC = 14
+    LAT_ACC = 15
+    TIME = 16
+    IDX = 17
+    ITERATION_FLAG = 18
 
-    def __init__(self, num_point: int, ttl_num: int = 0) -> None:
+    def __init__(self, num_point: int, ttl_num: int = 0, origin = None) -> None:
         self.ttl_num = ttl_num
-        self.points = np.zeros((num_point, 18), dtype=np.float64)
+        self.origin = origin
+        self.points = np.zeros((num_point, 19), dtype=np.float64)
         self.points[:, Trajectory.IDX] = np.arange(0, len(self.points), 1)
         self.points[:, Trajectory.ITERATION_FLAG] = -1
 
@@ -198,7 +201,8 @@ class Trajectory:
                             this_some_intersection = intersections[min_dist_idx]
 
                     elif type(some_intersects) is Point:
-                        this_some_distance = ttl_point.distance(some_intersects)
+                        this_some_distance = ttl_point.distance(
+                            some_intersects)
                         this_some_intersection = some_intersects
 
                     if this_some_distance < min_some_distance and this_some_intersection is not None:
@@ -216,6 +220,19 @@ class Trajectory:
             row[Trajectory.RIGHT_BOUND_Y] = right_bound.y
 
         np.apply_along_axis(calc_bounds, 1, self.points)
+
+    def fill_bank(self, bank_profile: np.ndarray):
+        def find_bank(row: np.ndarray):
+            closest_bank_pt = np.argmin(np.linalg.norm(
+                bank_profile[:, :2] - row[np.newaxis, :2], axis=1), axis=0)
+            row[Trajectory.BANK] = bank_profile[closest_bank_pt, 2]
+        np.apply_along_axis(find_bank, 1, self.points)
+
+    def find_closest(self, pt):
+        return np.argmin(np.linalg.norm(self.points[:, 0:2] - np.array(pt)[np.newaxis, :], axis=1), axis=0)
+
+    def shift(self, index):
+        self.points = np.roll(self.points, -index, 0)
 
     def set(self, idx: int, field: int, val: float):
         self.points[idx, field] = val
@@ -382,9 +399,11 @@ class BezierTrajectory:
                 .evaluate(percentage)
                 .T
             )
-            x, y = curves[current_curve].evaluate_hodograph(percentage).squeeze()
+            x, y = curves[current_curve].evaluate_hodograph(
+                percentage).squeeze()
             traj[i, Trajectory.YAW] = np.arctan2(y, x)
             current_length += interval
+        traj.shift(traj.find_closest((0.0, 0.0)))
         traj.fill_curvature()
         traj.fill_distance()
         return traj
@@ -400,10 +419,10 @@ if __name__ == "__main__":
     poly = BezierTrajectory(4)
     poly.points = np.array(
         [
-            [5.49779, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 0.5],
             [0.785398, 1.0, 1.0, 3.0, -1.0, 5.0, 1.0, 0.5],
             [2.35619, 1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 0.5],
             [3.92699, 1.0, 1.0, -1.0, 3.0, 1.0, 5.0, 0.5],
+            [5.49779, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 0.5],
         ]
     )
 
