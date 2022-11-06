@@ -31,7 +31,7 @@ def main():
     references = []
     regions = []
     bounds = []
-    bank = None
+    bank = []
 
     def open_file(event):
         root = tk.Tk()
@@ -117,8 +117,9 @@ def main():
         root.withdraw()
         file_path = filedialog.askopenfilename()
         root.destroy()
-        bank = np.loadtxt(file_path, dtype=np.float64, delimiter=',', skiprows=1)
-        print("Banking profile loaded although it will not be displayed.")
+        if file_path:
+            bank.append(np.loadtxt(file_path, dtype=np.float64, delimiter=',', skiprows=1))
+            print("Banking profile loaded although it will not be displayed.")
 
     axbopenref = plt.axes([0.3, 0.75, 0.4, 0.1])
     axbopenbound = plt.axes([0.3, 0.65, 0.4, 0.1])
@@ -476,8 +477,9 @@ def main():
                 traj.fill_region(regions)
             if len(bounds) > 0:
                 traj.fill_bounds(bounds, 20.0)
-            if bank is not None:
-                traj.fill_bank(bank)
+            if len(bank) > 0:
+                print("Exporting bank angle")
+                traj.fill_bank(bank[0])
             save_ttl(file_path, traj)
             root = tk.Tk()
             root.withdraw()
