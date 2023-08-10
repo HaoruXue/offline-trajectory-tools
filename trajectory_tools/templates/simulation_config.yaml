@@ -29,6 +29,12 @@ vehicle:
   # the traction circle radius
   g_circle_radius_mpss: 15.0
 
+  # top speed of vehicle
+  max_speed_mps: 20.0
+
+  # max change of acceleration
+  max_jerk: 50.0
+
   # under construction
   downforce_speed_lookup:
     # downforce (N) under different speeds

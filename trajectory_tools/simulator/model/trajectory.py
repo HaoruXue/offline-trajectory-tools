@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 from bezier.curve import Curve
-from shapely.geometry import Point, Polygon, asLinearRing, asLineString, LineString, GeometryCollection
+from shapely.geometry import Point, Polygon, LineString, GeometryCollection, LinearRing
 
 
 @dataclass
@@ -155,9 +155,9 @@ class Trajectory:
         geoms = []
         for bound in bounds:
             if bound.type == 'ring':
-                geoms.append(asLinearRing(bound.vertices))
+                geoms.append(LinearRing(bound.vertices))
             elif bound.type == 'line':
-                geoms.append(asLineString(bound.vertices))
+                geoms.append(LineString(bound.vertices))
             else:
                 raise Exception(
                     "Invalid boundary type. It can be ring or line.")
@@ -255,6 +255,8 @@ class Trajectory:
     def copy(self):
         new_traj = Trajectory(len(self.points))
         new_traj.points = self.points.copy()
+        new_traj.origin = self.origin
+        new_traj.ttl_num = self.ttl_num
         return new_traj
 
     def __getitem__(self, key):
